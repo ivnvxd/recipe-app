@@ -2,6 +2,12 @@
 Views for the recipe APIs.
 """
 from core.models import Ingredient, Recipe, Tag
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
@@ -11,6 +17,22 @@ from rest_framework.response import Response
 from recipe import serializers
 
 
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="tags",
+                type=OpenApiTypes.STR,
+                description="Comma separated list of tag IDs to filter by.",
+            ),
+            OpenApiParameter(
+                name="ingredients",
+                type=OpenApiTypes.STR,
+                description="Comma separated list of ingredient IDs to filter by.",
+            ),
+        ],
+    ),
+)
 class RecipeViewSet(viewsets.ModelViewSet):
     """View for manage recipe APIs."""
 
@@ -19,9 +41,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
+    def _params_to_ints(self, qs):
+        """Convert a list of string IDs to a list of integers."""
+        return [int(str_id) for str_id in qs.split(",")]
+
     def get_queryset(self):
         """Return objects for the current authenticated user only."""
-        return self.queryset.filter(user=self.request.user).order_by("-id")
+        tags = self.request.query_params.get("tags")
+        ingredients = self.request.query_params.get("ingredients")
+
+        queryset = self.queryset
+
+        if tags:
+            tag_ids = self._params_to_ints(tags)
+            queryset = queryset.filter(tags__id__in=tag_ids)
+
+        if ingredients:
+            ingredient_ids = self._params_to_ints(ingredients)
+            queryset = queryset.filter(ingredients__id__in=ingredient_ids)
+
+        return queryset.filter(user=self.request.user).order_by("-id").distinct()
 
     def get_serializer_class(self):
         """Return the serializer class for request."""
