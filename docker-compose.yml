@@ -19,7 +19,9 @@ services:
       - DB_HOST=db
       - DB_NAME=devdb
       - DB_USER=devuser
-      - DB_PASSWORD=changeme
+      - DB_PASS=changeme
+      - DEBUG=1
+      - ALLOWED_HOSTS=127.0.0.1,0.0.0.0
     depends_on:
       - db
 
