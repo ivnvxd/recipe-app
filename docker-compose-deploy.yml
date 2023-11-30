@@ -4,6 +4,8 @@ services:
   app:
     build:
       context: .
+      args:
+        - DEV=false
     restart: always
     volumes:
       - static-data:/vol/web
